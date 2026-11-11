@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use App\Support\DogStatsD;
 
 class VeiculoController extends Controller
 {
@@ -108,7 +109,10 @@ class VeiculoController extends Controller
     {
         if (!$ids) return [];
         $baseUrl = (string) config('services.internal.cliente');
-        if ($baseUrl === '') throw new HttpException(503, 'Serviço de clientes não configurado.');
+        if ($baseUrl === '') {
+            DogStatsD::metric('mws.integration.errors', 1, 'c', ['service' => 'veiculo-lv', 'dependency' => 'cliente']);
+            throw new HttpException(503, 'Serviço de clientes não configurado.');
+        }
         $correlationId = request()->attributes->get('correlation_id')
             ?? request()->header('X-Correlation-ID')
             ?? (string) \Illuminate\Support\Str::uuid();
@@ -118,11 +122,15 @@ class VeiculoController extends Controller
                 'X-Internal-Token' => (string) config('services.internal_token'),
                 'X-Correlation-ID' => $correlationId,
             ])->connectTimeout(2)->timeout(5)->get(rtrim($baseUrl, '/') . '/api/internal/v1/clientes', ['ids' => $ids]);
-            if (!$response->successful()) throw new HttpException(503, 'Serviço de clientes indisponível.');
+            if (!$response->successful()) {
+                DogStatsD::metric('mws.integration.errors', 1, 'c', ['service' => 'veiculo-lv', 'dependency' => 'cliente']);
+                throw new HttpException(503, 'Serviço de clientes indisponível.');
+            }
             return $response->json() ?? [];
         } catch (HttpException $exception) {
             throw $exception;
         } catch (\Throwable $exception) {
+            DogStatsD::metric('mws.integration.errors', 1, 'c', ['service' => 'veiculo-lv', 'dependency' => 'cliente']);
             Log::warning('Falha ao consultar serviço de clientes', ['correlation_id' => $correlationId]);
             throw new HttpException(503, 'Serviço de clientes indisponível.');
         }
