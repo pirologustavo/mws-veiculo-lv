@@ -49,6 +49,9 @@ phpstan analyse app --level=1 --memory-limit=512M --no-progress --autoload-file=
 
 Use PHP 8.4, PDO SQLite e PCOV. A cobertura inclui todo o diretório `app`; o pipeline falha abaixo de 80% por serviço. Pint e PHPStan verificam estilo e qualidade estática.
 
+## Resultado dos testes
+<img width="1499" height="856" alt="image" src="https://github.com/user-attachments/assets/cd14e05a-37b6-4e93-8491-49e7ef1d7840" />
+
 ## Documentação e APIs
 
 - [Arquitetura do serviço](docs/ARCHITECTURE.md).
